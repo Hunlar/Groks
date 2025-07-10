@@ -2,10 +2,7 @@ import os
 import logging
 import requests
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder, ContextTypes,
-    MessageHandler, CommandHandler, filters
-)
+from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, CallbackContext
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 HF_API_KEY = os.getenv("HF_API_KEY")
@@ -29,36 +26,37 @@ def generate_reply(prompt: str) -> str:
         logging.error(f"HuggingFace Hatası: {e}")
         return "Cevap üretilemedi."
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def handle_message(update: Update, context: CallbackContext):
     text = update.message.text
     reply = generate_reply(text)
-    await update.message.reply_text(reply)
+    update.message.reply_text(reply)
 
-async def hell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def hell_command(update: Update, context: CallbackContext):
     user_id = str(update.effective_user.id)
     chat_id = update.effective_chat.id
 
     if user_id not in OWNER_IDS:
-        await update.message.reply_text("Bu komutu kullanamazsın.")
+        update.message.reply_text("Bu komutu kullanamazsın.")
         return
 
-    admins = await context.bot.get_chat_administrators(chat_id)
+    admins = context.bot.get_chat_administrators(chat_id)
     admin_ids = [admin.user.id for admin in admins]
 
-    async for member in context.bot.get_chat_members(chat_id):
-        if member.user.id not in admin_ids and member.user.id != context.bot.id:
-            try:
-                await context.bot.ban_chat_member(chat_id, member.user.id)
-            except Exception as e:
-                logging.warning(f"Ban hatası: {member.user.id} - {e}")
+    # Burada get_chat_members async olmadığı için direkt kullanım biraz farklı olabilir,
+    # ama 13.x sürümünde toplu kullanıcı işlemi kolay değil.
+    # O yüzden sadece uyarı mesajı bırakıyorum.
 
-    await update.message.reply_text("Yöneticiler dışındaki herkes banlandı.")
+    update.message.reply_text("Bu sürümde toplu banlama async olmadığı için desteklenmiyor.")
 
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("hell", hell_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.run_polling()
+    updater = Updater(BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("hell", hell_command))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     main()
