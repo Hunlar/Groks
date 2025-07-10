@@ -7,15 +7,12 @@ from telegram.ext import (
     MessageHandler, CommandHandler, filters
 )
 
-# Ortam değişkenlerini al
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 HF_API_KEY = os.getenv("HF_API_KEY")
-OWNER_IDS = os.getenv("OWNER_IDS", "").split(",")  # '123,456' → ['123', '456']
+OWNER_IDS = os.getenv("OWNER_IDS", "").split(",")
 
-# Loglama
 logging.basicConfig(level=logging.INFO)
 
-# Hugging Face mesaj üretimi
 def generate_reply(prompt: str) -> str:
     try:
         headers = {"Authorization": f"Bearer {HF_API_KEY}"}
@@ -29,22 +26,20 @@ def generate_reply(prompt: str) -> str:
         result = response.json()
         return result[0]["generated_text"] if isinstance(result, list) else "Cevap alınamadı."
     except Exception as e:
-        logging.error(f"HuggingFace API Hatası: {e}")
-        return "Grok cevap veremedi."
+        logging.error(f"HuggingFace Hatası: {e}")
+        return "Cevap üretilemedi."
 
-# Mesajlara yanıt
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     reply = generate_reply(text)
     await update.message.reply_text(reply)
 
-# /hell komutu
 async def hell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     chat_id = update.effective_chat.id
 
     if user_id not in OWNER_IDS:
-        await update.message.reply_text("Yetkin yok.")
+        await update.message.reply_text("Bu komutu kullanamazsın.")
         return
 
     admins = await context.bot.get_chat_administrators(chat_id)
@@ -57,15 +52,12 @@ async def hell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 logging.warning(f"Ban hatası: {member.user.id} - {e}")
 
-    await update.message.reply_text("Yöneticiler dışındaki herkes kovuldu.")
+    await update.message.reply_text("Yöneticiler dışındaki herkes banlandı.")
 
-# Botu başlat
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CommandHandler("hell", hell_command))
-
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.run_polling()
 
 if __name__ == "__main__":
