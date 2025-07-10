@@ -1,0 +1,25 @@
+{
+  "name": "Grok1xBot",
+  "description": "Yapay zekâ destekli Telegram botu (HuggingFace + Heroku)",
+  "repository": "https://github.com/Hunlar/Groks",
+  "keywords": ["telegram", "bot", "huggingface", "heroku", "python"],
+  "env": {
+    "BOT_TOKEN": {
+      "description": "Telegram bot token’ınızı buraya yapıştırın.",
+      "required": true
+    },
+    "HF_API_KEY": {
+      "description": "Hugging Face API anahtarınız",
+      "required": true
+    },
+    "OWNER_IDS": {
+      "description": "Sahip kullanıcı ID'leri (virgülle ayrılmış)",
+      "required": true
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
